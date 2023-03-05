@@ -39,12 +39,13 @@ function Metronome() {
                 <input name="bpm" onChange={bpmChangeEvent} type="range" min="20" max="300" value={bpm}/>
             </div>
             <button onClick={buttonClickEvent} className="metronomeButton" >{state ? 'STOP' : 'START'}</button>
+            
+            <p>BEAT</p>
             <div className="beatWrap">
                 <button onClick={()=>{beatControl(0)}}>&#60;</button>
                 <p>{beat}</p>
                 <button onClick={()=>{beatControl(1)}}>&#62;</button>
             </div>
-            <p>Beat</p>
         </div>
     )
 }

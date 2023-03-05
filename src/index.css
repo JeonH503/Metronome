@@ -12,6 +12,23 @@ code {
     monospace;
 }
 
+p {
+  margin:0;
+}
+
+button {
+  border: none;
+  padding: 5px 10px;
+  color: white;
+  background-color: rgb(25, 118, 210);
+  border-radius: 4px;
+  box-shadow: 0px 3px 1px -2px rgb(0 0 0 / 20%), 0px 2px 2px 0px rgb(0 0 0 / 14%), 0px 1px 5px 0px rgb(0 0 0 / 12%);
+}
+
+button:hover {
+  cursor: pointer;
+}
+
 .metrnome {
   width:500px;
   border: 1px solid black;
@@ -56,11 +73,17 @@ code {
 .metronomeButton{
   display: block;
   margin: 0 auto;
+  margin-bottom: 10px;
 }
 
 .beatWrap {
   display: flex;
   justify-content: center;
+  margin: 0 0 10px 0;
+}
+
+.beatWrap p {
+  margin: 0 10px;
 }
 
 .metrnome p {
