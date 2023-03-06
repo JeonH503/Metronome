@@ -1,9 +1,17 @@
-import { useState } from "react" 
+import { useState,useRef,useEffect } from "react" 
+import BeatCell from "./Component/BeatCell";
 
 function Metronome() {
     const [bpm, setBpm] = useState(90);
     const [beat, setBeat] = useState(4);
     const [state, setState] = useState(false);
+    const hh = useRef();
+    const oh = useRef();
+
+    const audioContext = new AudioContext();
+
+    // test
+    let beatCells
 
     const BeatElements = () => {
         let temp = Array(beat).fill(0)
@@ -15,7 +23,14 @@ function Metronome() {
     }
 
     const buttonClickEvent = () => {
-        setState(!state)
+        // setState(!state)
+
+
+        // test code
+        beatCells[0].playBeat();
+        setTimeout(() => {
+            beatCells[1].playBeat();
+        }, 500);
     }
 
     const beatControl = (type) => {
@@ -24,6 +39,34 @@ function Metronome() {
         else if(!type && beat !== 1)
             setBeat(beat - 1)
     }
+
+    const buildMainSound = () => {
+        console.log("test")
+
+        const compressor = new DynamicsCompressorNode(audioContext);
+        const gain = new GainNode(audioContext, {gain: 0.25});
+
+        compressor.connect(gain).connect(audioContext.destination);
+
+        return compressor
+    }
+
+    const buildBeatCells = (outputNode) => {
+        const beatCells = []
+        const hhElement = hh.current;
+        const ohElement = oh.current;
+
+        beatCells[0] = new BeatCell(outputNode, hhElement);
+        beatCells[1] = new BeatCell(outputNode, ohElement);
+        
+        return beatCells
+    }
+
+    useEffect(() => {
+        console.log("test")
+        const main = buildMainSound();
+        beatCells = buildBeatCells(main);
+    },[])
 
     return(
         <div className="metrnome">
@@ -46,6 +89,9 @@ function Metronome() {
                 <p>{beat}</p>
                 <button onClick={()=>{beatControl(1)}}>&#62;</button>
             </div>
+
+            <audio ref={hh} src="/samples/drum-hh-01.mp3"></audio>
+            <audio ref={oh} src="/samples/drum-oh-01.mp3"></audio>
         </div>
     )
 }
