@@ -8,6 +8,7 @@ function Metronome() {
     const [beatCells, setBeatCells] = useState([]);
     const hh = useRef();
     const oh = useRef();
+    const displayBpm = useRef();
 
     const audioContext = new AudioContext();
 
@@ -22,8 +23,6 @@ function Metronome() {
 
     const buttonClickEvent = () => {
         setState(!state)
-        if(!state)
-            beatInterval()
     }
 
     const beatControl = (type) => {
@@ -33,17 +32,7 @@ function Metronome() {
             setBeat(beat - 1)
     }
 
-    const beatInterval = () => {
-        let interval = 60000 / bpm
-        // console.log(interval)
-        setInterval(() => {
-            console.log("test")
-        },interval) 
-    }
-
     const buildMainSound = () => {
-        console.log("test")
-
         const compressor = new DynamicsCompressorNode(audioContext);
         const gain = new GainNode(audioContext, {gain: 0.25});
 
@@ -63,16 +52,37 @@ function Metronome() {
         return beatCells
     }
 
+    const changeDisplayedBpm = (e) => {
+        displayBpm.current.innerHTML = e.target.value + ' BPM'
+    }
+
     useEffect(() => {
-        console.log("test")
         const main = buildMainSound();
         const beatCells = buildBeatCells(main);
         setBeatCells(beatCells)
     },[])
 
+
+    const beatInterval = () => {
+        let interval = 60000 / bpm
+        return setInterval(() => {
+            console.log(bpm)
+        },interval) 
+    }
+
+    useEffect(() => {
+        let interval = null;
+        
+        if(state) {
+            interval = beatInterval()
+        }
+        
+        return () => clearInterval(interval)
+    },[bpm,beat,state])
+
     return(
         <div className="metrnome">
-            <h3 className="bpmDisplay">{bpm} BPM</h3>
+            <h3 className="bpmDisplay" ref={displayBpm}>{bpm} BPM</h3>
             <table className="beatDisplay">
                 <tbody>
                     <tr>
@@ -81,7 +91,7 @@ function Metronome() {
                 </tbody>
             </table>
             <div className="bpmSliderWrap">
-                <input name="bpm" onChange={bpmChangeEvent} type="range" min="20" max="300" value={bpm}/>
+                <input name="bpm" onMouseUp={bpmChangeEvent} onChange={changeDisplayedBpm} type="range" min="20" max="300" defaultValue={bpm}/>
             </div>
             <button onClick={buttonClickEvent} className="metronomeButton" >{state ? 'STOP' : 'START'}</button>
             
