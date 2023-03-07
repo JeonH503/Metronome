@@ -5,13 +5,11 @@ function Metronome() {
     const [bpm, setBpm] = useState(90);
     const [beat, setBeat] = useState(4);
     const [state, setState] = useState(false);
+    const [beatCells, setBeatCells] = useState([]);
     const hh = useRef();
     const oh = useRef();
 
     const audioContext = new AudioContext();
-
-    // test
-    let beatCells
 
     const BeatElements = () => {
         let temp = Array(beat).fill(0)
@@ -23,14 +21,9 @@ function Metronome() {
     }
 
     const buttonClickEvent = () => {
-        // setState(!state)
-
-
-        // test code
-        beatCells[0].playBeat();
-        setTimeout(() => {
-            beatCells[1].playBeat();
-        }, 500);
+        setState(!state)
+        if(!state)
+            beatInterval()
     }
 
     const beatControl = (type) => {
@@ -38,6 +31,14 @@ function Metronome() {
             setBeat(beat + 1)
         else if(!type && beat !== 1)
             setBeat(beat - 1)
+    }
+
+    const beatInterval = () => {
+        let interval = 60000 / bpm
+        // console.log(interval)
+        setInterval(() => {
+            console.log("test")
+        },interval) 
     }
 
     const buildMainSound = () => {
@@ -65,7 +66,8 @@ function Metronome() {
     useEffect(() => {
         console.log("test")
         const main = buildMainSound();
-        beatCells = buildBeatCells(main);
+        const beatCells = buildBeatCells(main);
+        setBeatCells(beatCells)
     },[])
 
     return(
