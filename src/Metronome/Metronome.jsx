@@ -6,8 +6,7 @@ function Metronome() {
     const [beat, setBeat] = useState(4);
     const [state, setState] = useState(false);
     const [beatCells, setBeatCells] = useState([]);
-    const hh = useRef();
-    const oh = useRef();
+    // let nextNoteTime = 0;
     const displayBpm = useRef();
 
     const audioContext = new AudioContext();
@@ -41,15 +40,18 @@ function Metronome() {
         return compressor
     }
 
-    const buildBeatCells = (outputNode) => {
+    const buildBeatCells = async (outputNode) => {
         const beatCells = []
-        const hhElement = hh.current;
-        const ohElement = oh.current;
+        let response
 
-        beatCells[0] = new BeatCell(outputNode, hhElement);
-        beatCells[1] = new BeatCell(outputNode, ohElement);
-        
-        return beatCells
+        response = await fetch('/samples/drum-hh-01.mp3')
+        let firstBuffer = await response.arrayBuffer()
+        response = await fetch('/samples/drum-oh-01.mp3')
+        let secondBuffer = await response.arrayBuffer()
+    
+        beatCells[0] = new BeatCell(outputNode, await audioContext.decodeAudioData(firstBuffer));
+        beatCells[1] = new BeatCell(outputNode, await audioContext.decodeAudioData(secondBuffer));
+        setBeatCells(beatCells)
     }
 
     const changeDisplayedBpm = (e) => {
@@ -58,15 +60,14 @@ function Metronome() {
 
     useEffect(() => {
         const main = buildMainSound();
-        const beatCells = buildBeatCells(main);
-        setBeatCells(beatCells)
+        buildBeatCells(main);
     },[])
 
 
     const beatInterval = () => {
-        let interval = 60000 / bpm
+        let interval = 100;
         return setInterval(() => {
-            console.log(bpm)
+            // while(nextNoteTime < )
         },interval) 
     }
 
@@ -101,9 +102,6 @@ function Metronome() {
                 <p>{beat}</p>
                 <button onClick={()=>{beatControl(1)}}>&#62;</button>
             </div>
-
-            <audio ref={hh} src="/samples/drum-hh-01.mp3"></audio>
-            <audio ref={oh} src="/samples/drum-oh-01.mp3"></audio>
         </div>
     )
 }
