@@ -6,14 +6,16 @@ function Metronome() {
     const [beat, setBeat] = useState(4);
     const [state, setState] = useState(false);
     const [beatCells, setBeatCells] = useState([]);
-    // let nextNoteTime = 0;
+    let nextNoteTime = 0;
     const displayBpm = useRef();
+    const beats = useRef([]);
 
     const audioContext = new AudioContext();
 
     const BeatElements = () => {
+        console.log("test")
         let temp = Array(beat).fill(0)
-        return temp.map((e,i) => <td key={i} className="beat"></td>);
+        return temp.map((e,i) => <td key={i} ref={(el) => beats.current[i] = el} className={"beat " + i}></td>);
     }
 
     const bpmChangeEvent = (e) => {
@@ -32,12 +34,12 @@ function Metronome() {
     }
 
     const buildMainSound = () => {
-        const compressor = new DynamicsCompressorNode(audioContext);
-        const gain = new GainNode(audioContext, {gain: 0.25});
+        // const compressor = new DynamicsCompressorNode(audioContext);
+        const gain = new GainNode(audioContext, {gain: 0.75});
 
-        compressor.connect(gain).connect(audioContext.destination);
+        gain.connect(audioContext.destination);
 
-        return compressor
+        return gain
     }
 
     const buildBeatCells = async (outputNode) => {
@@ -58,6 +60,17 @@ function Metronome() {
         displayBpm.current.innerHTML = e.target.value + ' BPM'
     }
 
+    const addNewSchedule = (index) => {
+        // 높은음일지 낮은음일지 고르기
+         
+        // 스케줄 추가
+        let beatPerSec = 60 / bpm;
+        
+        beatCells[0].addSchedule(nextNoteTime);
+
+        nextNoteTime += beatPerSec;
+    }
+
     useEffect(() => {
         const main = buildMainSound();
         buildBeatCells(main);
@@ -66,8 +79,12 @@ function Metronome() {
 
     const beatInterval = () => {
         let interval = 100;
+        let index = 0;
         return setInterval(() => {
-            // while(nextNoteTime < )
+            while(nextNoteTime < audioContext.currentTime + 0.1) {
+                addNewSchedule(index);
+                index = (index + 1) % beat;
+            }
         },interval) 
     }
 
