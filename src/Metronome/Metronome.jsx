@@ -1,16 +1,18 @@
 import { useState,useRef,useEffect } from "react" 
 import BeatCell from "./Component/BeatCell";
 
+let audioContext = new AudioContext();
+
 function Metronome() {
     const [bpm, setBpm] = useState(90);
     const [beat, setBeat] = useState(4);
     const [state, setState] = useState(false);
-    const [beatCells, setBeatCells] = useState([]);
-    let nextNoteTime = 0;
+    const [buffers, SetBuffers] = useState([]);
     const displayBpm = useRef();
     const beats = useRef([]);
 
-    const audioContext = new AudioContext();
+    let nextNoteTime = 0;
+
 
     const BeatElements = () => {
         console.log("test")
@@ -34,7 +36,6 @@ function Metronome() {
     }
 
     const buildMainSound = () => {
-        // const compressor = new DynamicsCompressorNode(audioContext);
         const gain = new GainNode(audioContext, {gain: 0.75});
 
         gain.connect(audioContext.destination);
@@ -42,47 +43,65 @@ function Metronome() {
         return gain
     }
 
-    const buildBeatCells = async (outputNode) => {
+    const buildBeatCells = (outputNode) => {
         const beatCells = []
+
+        beatCells[0] = new BeatCell(outputNode, buffers[0]);
+        beatCells[1] = new BeatCell(outputNode, buffers[1]);
+        
+        return beatCells
+    }
+
+    const decodeAudioFiles = async () => {
         let response
+        let buffers = []
 
         response = await fetch('/samples/drum-hh-01.mp3')
         let firstBuffer = await response.arrayBuffer()
         response = await fetch('/samples/drum-oh-01.mp3')
         let secondBuffer = await response.arrayBuffer()
-    
-        beatCells[0] = new BeatCell(outputNode, await audioContext.decodeAudioData(firstBuffer));
-        beatCells[1] = new BeatCell(outputNode, await audioContext.decodeAudioData(secondBuffer));
-        setBeatCells(beatCells)
-    }
 
+        buffers[0] = await audioContext.decodeAudioData(firstBuffer)
+        buffers[1] = await audioContext.decodeAudioData(secondBuffer)
+
+        SetBuffers(buffers)
+    }
     const changeDisplayedBpm = (e) => {
         displayBpm.current.innerHTML = e.target.value + ' BPM'
     }
 
-    const addNewSchedule = (index) => {
+    const addNewSchedule = (index, beatCells) => {
         // 높은음일지 낮은음일지 고르기
          
         // 스케줄 추가
         let beatPerSec = 60 / bpm;
         
-        beatCells[0].addSchedule(nextNoteTime);
+        if(index)
+            beatCells[0].addSchedule(nextNoteTime);
+        else 
+            beatCells[0].addSchedule(nextNoteTime);
 
         nextNoteTime += beatPerSec;
     }
 
     useEffect(() => {
-        const main = buildMainSound();
-        buildBeatCells(main);
+        decodeAudioFiles()
+
+        audioContext = new AudioContext
     },[])
 
 
-    const beatInterval = () => {
+    const beatInterval = (beatCells) => {
         let interval = 100;
         let index = 0;
+
         return setInterval(() => {
+            if(!nextNoteTime) //start할 시 currentTime이 
+                              //자동 업데이트 되어 같은값으로 업데이트 필요
+                nextNoteTime = audioContext.currentTime;
+            
             while(nextNoteTime < audioContext.currentTime + 0.1) {
-                addNewSchedule(index);
+                addNewSchedule(index, beatCells);
                 index = (index + 1) % beat;
             }
         },interval) 
@@ -92,7 +111,10 @@ function Metronome() {
         let interval = null;
         
         if(state) {
-            interval = beatInterval()
+            audioContext = new AudioContext
+            const main = buildMainSound();
+            const beatCells = buildBeatCells(main);
+            interval = beatInterval(beatCells)
         }
         
         return () => clearInterval(interval)
