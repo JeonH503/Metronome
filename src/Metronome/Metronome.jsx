@@ -1,27 +1,101 @@
-import { useState,useRef,useEffect } from "react" 
+import { useState,useRef,useEffect,memo } from "react" 
 import BeatCell from "./Component/BeatCell";
+import Beats from "./Component/beats"
+import styled from "styled-components"; 
 
-let audioContext = new AudioContext();
+const MemoBeatElements = memo(Beats)
+
+const MetronomeWrap = styled.div`
+    width:500px;
+    border: 1px solid rgb(204, 204, 204);
+    border-radius: 10px;
+    box-shadow: 0px 3px 1px -2px rgb(0 0 0 / 20%), 0px 2px 2px 0px rgb(0 0 0 / 14%), 0px 1px 5px 0px rgb(0 0 0 / 12%);
+    & {
+        text-align: center;
+    }
+    & p {
+        margin:0px;
+    }
+`
+
+const BpmDisplay = styled.h3`
+    width: 100%;
+`
+
+const BeatDisplay = styled.table`
+    width: 100%;
+
+    & tbody tr {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+    }
+`
+
+const BpmSliderWrap = styled.div`
+    margin: 10px;
+    display: flex;
+
+    & input {
+        width: 100%;
+    }
+
+    & button {
+        width: 30px;
+        height: 30px;
+        border-radius: 30px;
+    }
+`
+
+const Button = styled.button`
+    border: none;
+    padding: 5px 10px;
+    color: white;
+    background-color: rgb(25, 118, 210);
+    border-radius: 4px;
+    box-shadow: 0px 3px 1px -2px rgb(0 0 0 / 20%), 0px 2px 2px 0px rgb(0 0 0 / 14%), 0px 1px 5px 0px rgb(0 0 0 / 12%);
+
+    &:hover {
+        cursor: pointer;
+    }
+`
+
+const MetronomeButton = styled(Button)`
+    display: block;
+    margin: 0 auto;
+    margin-bottom: 10px;
+    width: 80px;
+    transition: all 0.2s;
+    background:${props=>props.state ? 'rgb(219, 68, 55)' : 'rgb(25, 118, 210)'};
+`
+
+const BeatWrap = styled.div`
+    display: flex;
+    justify-content: center;
+    margin: 0 0 10px 0;
+
+    & p {
+        margin: 0 10px;
+    }
+`
+
 
 function Metronome() {
     const [bpm, setBpm] = useState(90);
     const [beat, setBeat] = useState(4);
+    const [beatIndex, setBeatIndex] = useState(-1);
     const [state, setState] = useState(false);
-    const [buffers, SetBuffers] = useState([]);
-    const displayBpm = useRef();
-    const beats = useRef([]);
+    const [buffers, setBuffers] = useState([]);
+    const [audioContext, setAudioContext] = useState();
+    const [soundInterval, setSoundInterval] = useState();
 
     let nextNoteTime = 0;
 
-
-    const BeatElements = () => {
-        console.log("test")
-        let temp = Array(beat).fill(0)
-        return temp.map((e,i) => <td key={i} ref={(el) => beats.current[i] = el} className={"beat " + i}></td>);
-    }
-
-    const bpmChangeEvent = (e) => {
-        setBpm(e.target.value);
+    const bpmChangeEvent = (e = null, value) => {
+        if(e)
+            setBpm(e.target.value);
+        else
+            setBpm(bpm + value)   
     }
 
     const buttonClickEvent = () => {
@@ -36,7 +110,7 @@ function Metronome() {
     }
 
     const buildMainSound = () => {
-        const gain = new GainNode(audioContext, {gain: 0.75});
+        const gain = new GainNode(audioContext, {gain: 0.25});
 
         gain.connect(audioContext.destination);
 
@@ -53,6 +127,7 @@ function Metronome() {
     }
 
     const decodeAudioFiles = async () => {
+        let audioContext = new AudioContext();
         let response
         let buffers = []
 
@@ -64,30 +139,26 @@ function Metronome() {
         buffers[0] = await audioContext.decodeAudioData(firstBuffer)
         buffers[1] = await audioContext.decodeAudioData(secondBuffer)
 
-        SetBuffers(buffers)
+        setBuffers(buffers)
     }
-    const changeDisplayedBpm = (e) => {
-        displayBpm.current.innerHTML = e.target.value + ' BPM'
+    const changeBpm = (e) => {
+        setBpm(e.target.value)
     }
 
     const addNewSchedule = (index, beatCells) => {
-        // 높은음일지 낮은음일지 고르기
-         
-        // 스케줄 추가
         let beatPerSec = 60 / bpm;
-        
+
         if(index)
             beatCells[0].addSchedule(nextNoteTime);
         else 
-            beatCells[0].addSchedule(nextNoteTime);
+            beatCells[1].addSchedule(nextNoteTime);
 
         nextNoteTime += beatPerSec;
     }
 
     useEffect(() => {
         decodeAudioFiles()
-
-        audioContext = new AudioContext
+        setAudioContext(new AudioContext())
     },[])
 
 
@@ -101,6 +172,7 @@ function Metronome() {
                 nextNoteTime = audioContext.currentTime;
             
             while(nextNoteTime < audioContext.currentTime + 0.1) {
+                setBeatIndex(index);
                 addNewSchedule(index, beatCells);
                 index = (index + 1) % beat;
             }
@@ -108,40 +180,50 @@ function Metronome() {
     }
 
     useEffect(() => {
-        let interval = null;
-        
-        if(state) {
-            audioContext = new AudioContext
-            const main = buildMainSound();
-            const beatCells = buildBeatCells(main);
-            interval = beatInterval(beatCells)
+        if(state && soundInterval) {
+            clearInterval(soundInterval);
         }
         
-        return () => clearInterval(interval)
-    },[bpm,beat,state])
+        let temp = setTimeout(() => {
+            if(state) {
+                const main = buildMainSound();
+                const beatCells = buildBeatCells(main);
+                setSoundInterval(beatInterval(beatCells));
+            } else {
+                clearInterval(soundInterval)
+                setSoundInterval(null);
+            }
+        },200)
+
+        return () => clearTimeout(temp)
+    },[state,bpm,beat])
 
     return(
-        <div className="metrnome">
-            <h3 className="bpmDisplay" ref={displayBpm}>{bpm} BPM</h3>
-            <table className="beatDisplay">
+        <MetronomeWrap>
+            <BpmDisplay>{bpm} BPM</BpmDisplay>
+            <BeatDisplay>
                 <tbody>
                     <tr>
-                        <BeatElements/>
+                        <MemoBeatElements beat={beat} beatIndex={beatIndex}/>
                     </tr>
                 </tbody>
-            </table>
-            <div className="bpmSliderWrap">
-                <input name="bpm" onMouseUp={bpmChangeEvent} onChange={changeDisplayedBpm} type="range" min="20" max="300" defaultValue={bpm}/>
-            </div>
-            <button onClick={buttonClickEvent} className="metronomeButton" >{state ? 'STOP' : 'START'}</button>
-            
+            </BeatDisplay>
+            <BpmSliderWrap>
+                <Button onClick={()=>{bpmChangeEvent(null,-1)}}>-</Button>
+                <input name="bpm" onChange={changeBpm} type="range" min="20" max="300" value={bpm}/>
+                <Button onClick={()=>{bpmChangeEvent(null,1)}}>+</Button>
+            </BpmSliderWrap>
+
+            <MetronomeButton onClick={buttonClickEvent} state={state} >{state ? 'STOP' : 'START'}</MetronomeButton>
+            {/* rgb(219, 68, 55); */}
+
             <p>BEAT</p>
-            <div className="beatWrap">
-                <button onClick={()=>{beatControl(0)}}>&#60;</button>
+            <BeatWrap>
+                <Button onClick={()=>{beatControl(0)}}>&#60;</Button>
                 <p>{beat}</p>
-                <button onClick={()=>{beatControl(1)}}>&#62;</button>
-            </div>
-        </div>
+                <Button onClick={()=>{beatControl(1)}}>&#62;</Button>
+            </BeatWrap>
+        </MetronomeWrap>
     )
 }
 
